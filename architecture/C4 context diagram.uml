@@ -1,0 +1,45 @@
+@startuml C4_FoodRecSys_MVP
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title C4 Diagram - Food Recommendation System MVP (без Redis)
+
+Person(user, "Пользователь", "Добавляет товары, получает рекомендации")
+
+System_Boundary(foodrec, "Food Recommendation System") {
+    Container(web_app, "Веб-приложение", "React + TypeScript", "UI + хранение корзины в localStorage")
+    
+    Container(api, "API Backend", "FastAPI", "Бизнес-логика, БД, вызов ML, JWT-авторизация")
+    
+    Container(ml_service, "ML Service", "FastAPI + sklearn/joblib", "Инференс модели рекомендаций")
+    
+    ContainerDb(db, "Database", "PostgreSQL", "Продукты, пользователи, корзины (после логина)")
+}
+
+Rel(user, web_app, "Использует", "HTTPS")
+Rel(web_app, api, "REST API", "JSON (токен в заголовке)")
+Rel(api, ml_service, "POST /predict", "HTTP/JSON (внутренняя сеть)")
+Rel(api, db, "Чтение/запись", "SQL")
+
+note right of ml_service
+  Загружает модель при старте.
+  Вход: product_ids[]
+  Выход: [{id, score}, ...]
+  Простой REST-эндпоинт.
+end note
+
+note bottom of web_app
+  Корзина в localStorage.
+  При запросе рекомендаций
+  шлёт весь список товаров.
+  При логине — синхронизация с БД.
+end note
+
+note top of api
+  Обогащает ML-ответ данными из БД.
+  Логирует показы рекомендаций.
+  Никакого кеширования (MVP).
+end note
+
+@enduml
