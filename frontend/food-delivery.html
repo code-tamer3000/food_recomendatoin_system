@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Food Delivery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <a href="#main-content" class="sr-only">Skip to content</a>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-label="Food Delivery" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="14" cy="14" r="13" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M7 14 C7 10.5 10 8 14 8 C18 8 21 10.5 21 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="14" cy="17" r="3" fill="currentColor"/>
+        </svg>
+        <span class="logo-text">FoodAPI</span>
+      </div>
+      <button class="theme-toggle" data-theme-toggle aria-label="Switch theme">
+        <i data-lucide="moon" width="16" height="16"></i>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Main navigation">
+      <div class="nav-section">
+        <span class="nav-label">Explore</span>
+        <button class="nav-item active" data-view="menu" onclick="switchView('menu')">
+          <i data-lucide="utensils" width="16" height="16"></i> Menu
+        </button>
+        <button class="nav-item" data-view="recommendations" onclick="switchView('recommendations')">
+          <i data-lucide="sparkles" width="16" height="16"></i> Recommendations
+        </button>
+        <button class="nav-item" data-view="cart" onclick="switchView('cart')">
+          <i data-lucide="shopping-cart" width="16" height="16"></i> Cart
+          <span class="badge" id="cart-badge" style="display:none">0</span>
+        </button>
+      </div>
+      <div class="nav-section">
+        <span class="nav-label">Account</span>
+        <button class="nav-item" data-view="profile" onclick="switchView('profile')" id="nav-profile">
+          <i data-lucide="user" width="16" height="16"></i> Profile
+        </button>
+        <button class="nav-item" data-view="auth" onclick="switchView('auth')" id="nav-auth">
+          <i data-lucide="log-in" width="16" height="16"></i> Login / Register
+        </button>
+      </div>
+      <div class="nav-section" id="nav-admin-section" style="display:none">
+        <span class="nav-label">Admin</span>
+        <button class="nav-item" data-view="admin" onclick="switchView('admin')">
+          <i data-lucide="settings" width="16" height="16"></i> Admin Panel
+        </button>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="api-status">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Connecting…</span>
+      </div>
+      <div id="user-chip" style="display:none" class="user-chip">
+        <i data-lucide="user-circle" width="14" height="14"></i>
+        <span id="user-chip-name"></span>
+        <button onclick="logout()" title="Logout" style="margin-left:auto">
+          <i data-lucide="log-out" width="12" height="12"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MOBILE HEADER -->
+  <header class="mobile-header">
+    <button class="icon-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+      <i data-lucide="menu" width="20" height="20"></i>
+    </button>
+    <span class="mobile-title" id="mobile-title">Menu</span>
+    <button class="theme-toggle" data-theme-toggle aria-label="Switch theme">
+      <i data-lucide="moon" width="16" height="16"></i>
+    </button>
+  </header>
+
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- MAIN -->
+  <main class="main" id="main-content">
+    <div class="topbar">
+      <h1 class="page-title" id="page-title">Menu</h1>
+      <div id="topbar-right"></div>
+    </div>
+
+    <div class="toast-area" id="toast-area"></div>
+
+    <!-- MENU VIEW -->
+    <div class="view active" id="view-menu">
+      <div class="search-bar">
+        <div class="search-wrap">
+          <i data-lucide="search" width="16" height="16" class="search-icon"></i>
+          <input type="text" class="input search-input" id="menu-search" placeholder="Search dishes…" oninput="debounceSearch(this.value)" />
+        </div>
+        <select class="input select-input" id="category-filter" onchange="filterByCategory(this.value)">
+          <option value="">All categories</option>
+        </select>
+      </div>
+      <div id="menu-grid" class="card-grid">
+        <div class="skeleton-grid">
+          <div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECOMMENDATIONS VIEW -->
+    <div class="view" id="view-recommendations">
+      <div id="rec-auth-warn" class="info-box" style="display:none">
+        <i data-lucide="info" width="16" height="16"></i>
+        Войдите, чтобы получить персональные рекомендации.
+        <button class="btn btn-sm" onclick="switchView('auth')">Login</button>
+      </div>
+      <div id="rec-controls" style="display:none" class="rec-header">
+        <label class="label" for="top-n-input">Show top</label>
+        <input type="number" class="input" id="top-n-input" value="10" min="1" max="50" style="width:70px" />
+        <button class="btn btn-primary btn-sm" onclick="loadRecommendations()">
+          <i data-lucide="refresh-cw" width="14" height="14"></i> Refresh
+        </button>
+        <span class="badge badge-warn" id="cold-start-badge" style="display:none">Cold Start</span>
+      </div>
+      <div id="rec-grid" class="card-grid"></div>
+    </div>
+
+    <!-- CART VIEW -->
+    <div class="view" id="view-cart">
+      <div id="cart-content"></div>
+    </div>
+
+    <!-- PROFILE VIEW -->
+    <div class="view" id="view-profile">
+      <div id="profile-content"></div>
+    </div>
+
+    <!-- AUTH VIEW -->
+    <div class="view" id="view-auth">
+      <div class="auth-container">
+        <div class="auth-tabs">
+          <button class="auth-tab active" onclick="showAuthTab('login')" id="tab-login">Login</button>
+          <button class="auth-tab" onclick="showAuthTab('register')" id="tab-register">Register</button>
+        </div>
+        <form class="auth-form" id="form-login" onsubmit="handleLogin(event)">
+          <div class="field">
+            <label class="label" for="login-username">Username or Email</label>
+            <input class="input" type="text" id="login-username" required autocomplete="username" />
+          </div>
+          <div class="field">
+            <label class="label" for="login-password">Password</label>
+            <input class="input" type="password" id="login-password" required autocomplete="current-password" />
+          </div>
+          <button class="btn btn-primary btn-full" type="submit" id="btn-login">
+            <i data-lucide="log-in" width="14" height="14"></i> Login
+          </button>
+          <p class="form-error" id="login-error"></p>
+        </form>
+        <form class="auth-form" id="form-register" style="display:none" onsubmit="handleRegister(event)">
+          <div class="field">
+            <label class="label" for="reg-username">Username</label>
+            <input class="input" type="text" id="reg-username" required autocomplete="username" />
+          </div>
+          <div class="field">
+            <label class="label" for="reg-email">Email</label>
+            <input class="input" type="email" id="reg-email" required autocomplete="email" />
+          </div>
+          <div class="field">
+            <label class="label" for="reg-password">Password (min 6 chars)</label>
+            <input class="input" type="password" id="reg-password" required autocomplete="new-password" minlength="6" />
+          </div>
+          <div class="field">
+            <label class="label" for="reg-fullname">Full Name <span class="optional">(optional)</span></label>
+            <input class="input" type="text" id="reg-fullname" autocomplete="name" />
+          </div>
+          <div class="field">
+            <label class="label" for="reg-phone">Phone <span class="optional">(optional)</span></label>
+            <input class="input" type="tel" id="reg-phone" autocomplete="tel" />
+          </div>
+          <button class="btn btn-primary btn-full" type="submit" id="btn-register">
+            <i data-lucide="user-plus" width="14" height="14"></i> Create Account
+          </button>
+          <p class="form-error" id="register-error"></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- ADMIN VIEW -->
+    <div class="view" id="view-admin">
+      <div class="admin-panel">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title" style="font-size:var(--text-lg)">Recommendation Model</h2>
+          </div>
+          <p class="text-muted" style="margin-bottom:var(--space-4);font-size:var(--text-sm)">
+            Retrain the SVD collaborative filtering model from orders stored in MongoDB.
+          </p>
+          <button class="btn btn-primary" onclick="trainModel()">
+            <i data-lucide="cpu" width="14" height="14"></i> Train Model
+          </button>
+          <div id="train-status" style="margin-top:var(--space-3)"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- PRODUCT MODAL -->
+  <div class="modal-backdrop" id="modal-backdrop" style="display:none" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <button class="icon-btn modal-close" onclick="closeModal()" aria-label="Close">
+        <i data-lucide="x" width="16" height="16"></i>
+      </button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

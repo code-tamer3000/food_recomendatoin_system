@@ -1,9 +1,12 @@
 """
-SVD-based collaborative filtering (TruncatedSVD).
-Модель тренируется из orders в MongoDB при первом вызове
-или загружается из recsys_model.pkl если файл существует.
+Cart-based recommender on top of trained item embeddings (TruncatedSVD).
+
+Training still uses orders from MongoDB to learn item embeddings.
+Inference does NOT require the user to be present in the training set:
+recommendations are built from the current cart only.
 """
-import pickle, asyncio
+
+import pickle
 from pathlib import Path
 from typing import Optional
 
@@ -12,80 +15,87 @@ import pandas as pd
 from scipy.sparse import csr_matrix
 from sklearn.decomposition import TruncatedSVD
 
-MODEL_PATH = Path(__file__).parent.parent.parent / "recsys_model.pkl"
+MODELPATH = Path(__file__).parent.parent.parent / "cart_recsys_model.pkl"
 
 
 class RecSysModel:
-    _instance: Optional["RecSysModel"] = None
+    instance: Optional["RecSysModel"] = None
 
     def __init__(self):
         self.user_embeddings: Optional[np.ndarray] = None
         self.item_embeddings: Optional[np.ndarray] = None
-        self.user_list: list = []
-        self.item_list: list = []
-        self.user_history: dict = {}
+        self.user_list: list[str] = []
+        self.item_list: list[str] = []
+        self.user_history: dict[str, set[str]] = {}
         self.ready = False
 
     @classmethod
     def get(cls) -> "RecSysModel":
-        if cls._instance is None:
-            cls._instance = RecSysModel()
-        return cls._instance
+        if cls.instance is None:
+            cls.instance = RecSysModel()
+        return cls.instance
 
     @classmethod
     def load(cls):
         inst = cls.get()
-        if MODEL_PATH.exists():
-            with open(MODEL_PATH, "rb") as f:
+        if MODELPATH.exists():
+            with open(MODELPATH, "rb") as f:
                 arts = pickle.load(f)
+
             inst.user_embeddings = arts["user_embeddings"]
             inst.item_embeddings = arts["item_embeddings"]
             inst.user_list = arts["user_list"]
             inst.item_list = arts["item_list"]
-            inst.user_history = arts["user_history"]
+            inst.user_history = arts.get("user_history", {})
             inst.ready = True
-            print(f"[RecSys] loaded from {MODEL_PATH}")
+            print(f"[RecSys] loaded from {MODELPATH}")
         else:
             print("[RecSys] model file not found — call /api/v1/recommendations/train first")
 
     async def train_from_db(self):
-        """Train model on orders stored in MongoDB, then save pkl."""
-        from app.db.mongodb import orders_col
-        cursor = orders_col().find({}, {"user_id": 1, "products": 1})
+        from app.db.mongodb import orderscol
+
+        cursor = orderscol.find({}, {"userid": 1, "products": 1})
         rows = []
+
         async for doc in cursor:
-            uid = str(doc["user_id"])
+            uid = str(doc["userid"])
             for p in doc.get("products", []):
-                rows.append({
-                    "user_id": uid,
-                    "product_id": str(p["product_id"]),
-                    "quantity": float(p.get("quantity", 1)),
-                })
+                rows.append(
+                    {
+                        "userid": uid,
+                        "productid": str(p["productid"]),
+                        "quantity": float(p.get("quantity", 1)),
+                    }
+                )
+
         if not rows:
             raise RuntimeError("No orders found in DB for training")
 
         df = pd.DataFrame(rows)
-        agg = df.groupby(["user_id", "product_id"])["quantity"].sum().reset_index()
+        agg = df.groupby(["userid", "productid"], as_index=False)["quantity"].sum()
 
-        # history dict for cold-start filtering
         self.user_history = (
-            df.groupby("user_id")["product_id"].apply(set).to_dict()
+            agg.groupby("userid")["productid"].apply(lambda s: set(map(str, s))).to_dict()
         )
 
-        user_cat = agg["user_id"].astype("category")
-        item_cat = agg["product_id"].astype("category")
+        user_cat = agg["userid"].astype("category")
+        item_cat = agg["productid"].astype("category")
 
-        mat = csr_matrix((
-            agg["quantity"].astype(float),
-            (user_cat.cat.codes, item_cat.cat.codes),
-        ))
+        mat = csr_matrix(
+            (agg["quantity"].astype(float), (user_cat.cat.codes, item_cat.cat.codes))
+        )
 
-        self.user_list = user_cat.cat.categories.tolist()
-        self.item_list = item_cat.cat.categories.tolist()
+        self.user_list = list(map(str, user_cat.cat.categories.tolist()))
+        self.item_list = list(map(str, item_cat.cat.categories.tolist()))
 
-        svd = TruncatedSVD(n_components=50, n_iter=15, random_state=42)
+        n_users, n_items = mat.shape
+        n_components = max(1, min(50, n_users - 1, n_items - 1))
+
+        svd = TruncatedSVD(n_components=n_components, n_iter=15, random_state=42)
         self.user_embeddings = svd.fit_transform(mat)
         self.item_embeddings = svd.components_.T
+
         self.ready = True
 
         arts = {
@@ -95,33 +105,57 @@ class RecSysModel:
             "item_list": self.item_list,
             "user_history": self.user_history,
         }
-        with open(MODEL_PATH, "wb") as f:
+
+        with open(MODELPATH, "wb") as f:
             pickle.dump(arts, f)
+
         print(f"[RecSys] trained & saved — {len(self.user_list)} users, {len(self.item_list)} items")
 
-    def recommend(self, user_id: str, top_n: int = 10) -> tuple[list[tuple[str, float]], bool]:
+    def recommend(
+        self,
+        cart_product_ids: list[str] | None,
+        topn: int = 10,
+    ) -> tuple[list[tuple[str, float]], bool]:
         """
-        Returns ([(product_id, score), ...], is_cold_start).
-        If user not in training data → popular items fallback.
+        Returns: ([(product_id, score), ...], is_fallback)
+
+        Main mode:
+        - Build a pseudo-user vector from current cart items using learned item embeddings.
+        - Score all items by similarity to that pseudo-user vector.
+
+        Fallback:
+        - If cart is empty or none of its items are known to the model,
+          return globally popular items from embedding magnitude.
         """
-        if not self.ready:
+        if not self.ready or self.item_embeddings is None or not self.item_list:
             return [], True
 
-        if user_id not in self.user_list:
-            # Cold start: return top-N most popular items overall
-            scores = self.item_embeddings.sum(axis=1)
-            best = np.argsort(scores)[::-1][:top_n]
-            return [(self.item_list[i], float(scores[i])) for i in best], True
+        cart_product_ids = [str(pid) for pid in (cart_product_ids or [])]
+        cart_set = set(cart_product_ids)
 
-        u_idx = self.user_list.index(user_id)
-        scores = self.user_embeddings[u_idx].dot(self.item_embeddings.T)
-        sorted_idx = np.argsort(scores)[::-1]
-        already = self.user_history.get(user_id, set())
-        recs = []
-        for idx in sorted_idx:
+        known_idxs = [
+            self.item_list.index(pid)
+            for pid in cart_product_ids
+            if pid in self.item_list
+        ]
+
+        if known_idxs:
+            pseudo_user = self.item_embeddings[known_idxs].mean(axis=0)
+            scores = self.item_embeddings.dot(pseudo_user)
+            is_fallback = False
+        else:
+            scores = np.linalg.norm(self.item_embeddings, axis=1)
+            is_fallback = True
+
+        sorted_idxs = np.argsort(scores)[::-1]
+
+        recs: list[tuple[str, float]] = []
+        for idx in sorted_idxs:
             pid = self.item_list[idx]
-            if pid not in already:
-                recs.append((pid, float(scores[idx])))
-            if len(recs) == top_n:
+            if pid in cart_set:
+                continue
+            recs.append((pid, float(scores[idx])))
+            if len(recs) >= topn:
                 break
-        return recs, False
+
+        return recs, is_fallback
