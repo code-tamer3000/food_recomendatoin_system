@@ -1,61 +1,65 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="dark">
+<html lang="ru" data-theme="light">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Food Delivery</title>
+  <title>Доставка еды</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-  <a href="#main-content" class="sr-only">Skip to content</a>
 
-  <!-- SIDEBAR -->
+<body>
+  <a href="#main-content" class="sr-only">Перейти к содержимому</a>
+
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="logo">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-label="Food Delivery" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="14" cy="14" r="13" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M7 14 C7 10.5 10 8 14 8 C18 8 21 10.5 21 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <circle cx="14" cy="17" r="3" fill="currentColor"/>
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-label="Доставка еды"
+          xmlns="http://www.w3.org/2000/svg">
+          <circle cx="14" cy="14" r="13" stroke="currentColor" stroke-width="1.5" />
+          <path d="M7 14 C7 10.5 10 8 14 8 C18 8 21 10.5 21 14" stroke="currentColor" stroke-width="1.5"
+            stroke-linecap="round" />
+          <circle cx="14" cy="17" r="3" fill="currentColor" />
         </svg>
         <span class="logo-text">FoodAPI</span>
       </div>
-      <button class="theme-toggle" data-theme-toggle aria-label="Switch theme">
+      <button class="theme-toggle" data-theme-toggle aria-label="Сменить тему">
         <i data-lucide="moon" width="16" height="16"></i>
       </button>
     </div>
 
-    <nav class="sidebar-nav" aria-label="Main navigation">
+    <nav class="sidebar-nav" aria-label="Основная навигация">
       <div class="nav-section">
-        <span class="nav-label">Explore</span>
+        <span class="nav-label">Меню</span>
         <button class="nav-item active" data-view="menu" onclick="switchView('menu')">
-          <i data-lucide="utensils" width="16" height="16"></i> Menu
-        </button>
-        <button class="nav-item" data-view="recommendations" onclick="switchView('recommendations')">
-          <i data-lucide="sparkles" width="16" height="16"></i> Recommendations
+          <i data-lucide="utensils" width="16" height="16"></i> Меню
         </button>
         <button class="nav-item" data-view="cart" onclick="switchView('cart')">
-          <i data-lucide="shopping-cart" width="16" height="16"></i> Cart
+          <i data-lucide="shopping-cart" width="16" height="16"></i> Корзина
           <span class="badge" id="cart-badge" style="display:none">0</span>
         </button>
       </div>
+
       <div class="nav-section">
-        <span class="nav-label">Account</span>
+        <span class="nav-label">Аккаунт</span>
         <button class="nav-item" data-view="profile" onclick="switchView('profile')" id="nav-profile">
-          <i data-lucide="user" width="16" height="16"></i> Profile
+          <i data-lucide="user" width="16" height="16"></i> Профиль
         </button>
         <button class="nav-item" data-view="auth" onclick="switchView('auth')" id="nav-auth">
-          <i data-lucide="log-in" width="16" height="16"></i> Login / Register
+          <i data-lucide="log-in" width="16" height="16"></i> Вход / Регистрация
         </button>
       </div>
+
       <div class="nav-section" id="nav-admin-section" style="display:none">
-        <span class="nav-label">Admin</span>
+        <span class="nav-label">Админ</span>
         <button class="nav-item" data-view="admin" onclick="switchView('admin')">
-          <i data-lucide="settings" width="16" height="16"></i> Admin Panel
+          <i data-lucide="settings" width="16" height="16"></i> Панель администратора
         </button>
       </div>
     </nav>
@@ -63,112 +67,98 @@
     <div class="sidebar-footer">
       <div class="api-status">
         <span class="status-dot" id="status-dot"></span>
-        <span id="status-text">Connecting…</span>
+        <span id="status-text">Подключение…</span>
       </div>
       <div id="user-chip" style="display:none" class="user-chip">
         <i data-lucide="user-circle" width="14" height="14"></i>
         <span id="user-chip-name"></span>
-        <button onclick="logout()" title="Logout" style="margin-left:auto">
+        <button onclick="logout()" title="Выйти" style="margin-left:auto">
           <i data-lucide="log-out" width="12" height="12"></i>
         </button>
       </div>
     </div>
   </aside>
 
-  <!-- MOBILE HEADER -->
   <header class="mobile-header">
-    <button class="icon-btn" onclick="toggleSidebar()" aria-label="Toggle menu">
+    <button class="icon-btn" onclick="toggleSidebar()" aria-label="Открыть меню">
       <i data-lucide="menu" width="20" height="20"></i>
     </button>
-    <span class="mobile-title" id="mobile-title">Menu</span>
-    <button class="theme-toggle" data-theme-toggle aria-label="Switch theme">
+    <span class="mobile-title" id="mobile-title">Меню</span>
+    <button class="theme-toggle" data-theme-toggle aria-label="Сменить тему">
       <i data-lucide="moon" width="16" height="16"></i>
     </button>
   </header>
 
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-  <!-- MAIN -->
   <main class="main" id="main-content">
     <div class="topbar">
-      <h1 class="page-title" id="page-title">Menu</h1>
+      <h1 class="page-title" id="page-title">Меню</h1>
       <div id="topbar-right"></div>
     </div>
 
     <div class="toast-area" id="toast-area"></div>
 
-    <!-- MENU VIEW -->
     <div class="view active" id="view-menu">
       <div class="search-bar">
         <div class="search-wrap">
           <i data-lucide="search" width="16" height="16" class="search-icon"></i>
-          <input type="text" class="input search-input" id="menu-search" placeholder="Search dishes…" oninput="debounceSearch(this.value)" />
+          <input type="text" class="input search-input" id="menu-search" placeholder="Поиск блюд…"
+            oninput="debounceSearch(this.value)" />
         </div>
         <select class="input select-input" id="category-filter" onchange="filterByCategory(this.value)">
-          <option value="">All categories</option>
+          <option value="">Все категории</option>
         </select>
       </div>
       <div id="menu-grid" class="card-grid">
         <div class="skeleton-grid">
-          <div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div>
-          <div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div>
-          <div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
         </div>
       </div>
     </div>
 
-    <!-- RECOMMENDATIONS VIEW -->
-    <div class="view" id="view-recommendations">
-      <div id="rec-auth-warn" class="info-box" style="display:none">
-        <i data-lucide="info" width="16" height="16"></i>
-        Войдите, чтобы получить персональные рекомендации.
-        <button class="btn btn-sm" onclick="switchView('auth')">Login</button>
-      </div>
-      <div id="rec-controls" style="display:none" class="rec-header">
-        <label class="label" for="top-n-input">Show top</label>
-        <input type="number" class="input" id="top-n-input" value="10" min="1" max="50" style="width:70px" />
-        <button class="btn btn-primary btn-sm" onclick="loadRecommendations()">
-          <i data-lucide="refresh-cw" width="14" height="14"></i> Refresh
-        </button>
-        <span class="badge badge-warn" id="cold-start-badge" style="display:none">Cold Start</span>
-      </div>
-      <div id="rec-grid" class="card-grid"></div>
-    </div>
-
-    <!-- CART VIEW -->
     <div class="view" id="view-cart">
       <div id="cart-content"></div>
+
+      <div class="cart-recommendations" id="cart-recommendations" style="display:none; margin-top:24px;">
+        <h2 class="card-title" style="font-size:var(--text-lg)">Рекомендуем к вашему заказу</h2>
+        <div id="cart-rec-grid" class="card-grid"></div>
+      </div>
     </div>
 
-    <!-- PROFILE VIEW -->
     <div class="view" id="view-profile">
       <div id="profile-content"></div>
     </div>
 
-    <!-- AUTH VIEW -->
     <div class="view" id="view-auth">
       <div class="auth-container">
         <div class="auth-tabs">
-          <button class="auth-tab active" onclick="showAuthTab('login')" id="tab-login">Login</button>
-          <button class="auth-tab" onclick="showAuthTab('register')" id="tab-register">Register</button>
+          <button class="auth-tab active" onclick="showAuthTab('login')" id="tab-login">Вход</button>
+          <button class="auth-tab" onclick="showAuthTab('register')" id="tab-register">Регистрация</button>
         </div>
         <form class="auth-form" id="form-login" onsubmit="handleLogin(event)">
           <div class="field">
-            <label class="label" for="login-username">Username or Email</label>
+            <label class="label" for="login-username">Логин или email</label>
             <input class="input" type="text" id="login-username" required autocomplete="username" />
           </div>
           <div class="field">
-            <label class="label" for="login-password">Password</label>
+            <label class="label" for="login-password">Пароль</label>
             <input class="input" type="password" id="login-password" required autocomplete="current-password" />
           </div>
           <button class="btn btn-primary btn-full" type="submit" id="btn-login">
-            <i data-lucide="log-in" width="14" height="14"></i> Login
+            <i data-lucide="log-in" width="14" height="14"></i> Войти
           </button>
           <p class="form-error" id="login-error"></p>
         </form>
+
         <form class="auth-form" id="form-register" style="display:none" onsubmit="handleRegister(event)">
           <div class="field">
-            <label class="label" for="reg-username">Username</label>
+            <label class="label" for="reg-username">Логин</label>
             <input class="input" type="text" id="reg-username" required autocomplete="username" />
           </div>
           <div class="field">
@@ -176,37 +166,36 @@
             <input class="input" type="email" id="reg-email" required autocomplete="email" />
           </div>
           <div class="field">
-            <label class="label" for="reg-password">Password (min 6 chars)</label>
+            <label class="label" for="reg-password">Пароль (минимум 6 символов)</label>
             <input class="input" type="password" id="reg-password" required autocomplete="new-password" minlength="6" />
           </div>
           <div class="field">
-            <label class="label" for="reg-fullname">Full Name <span class="optional">(optional)</span></label>
+            <label class="label" for="reg-fullname">Полное имя <span class="optional">(необязательно)</span></label>
             <input class="input" type="text" id="reg-fullname" autocomplete="name" />
           </div>
           <div class="field">
-            <label class="label" for="reg-phone">Phone <span class="optional">(optional)</span></label>
+            <label class="label" for="reg-phone">Телефон <span class="optional">(необязательно)</span></label>
             <input class="input" type="tel" id="reg-phone" autocomplete="tel" />
           </div>
           <button class="btn btn-primary btn-full" type="submit" id="btn-register">
-            <i data-lucide="user-plus" width="14" height="14"></i> Create Account
+            <i data-lucide="user-plus" width="14" height="14"></i> Создать аккаунт
           </button>
           <p class="form-error" id="register-error"></p>
         </form>
       </div>
     </div>
 
-    <!-- ADMIN VIEW -->
     <div class="view" id="view-admin">
       <div class="admin-panel">
         <div class="card">
           <div class="card-header">
-            <h2 class="card-title" style="font-size:var(--text-lg)">Recommendation Model</h2>
+            <h2 class="card-title" style="font-size:var(--text-lg)">Модель рекомендаций</h2>
           </div>
           <p class="text-muted" style="margin-bottom:var(--space-4);font-size:var(--text-sm)">
-            Retrain the SVD collaborative filtering model from orders stored in MongoDB.
+            Обучить SVD-модель коллаборативной фильтрации по заказам из MongoDB.
           </p>
           <button class="btn btn-primary" onclick="trainModel()">
-            <i data-lucide="cpu" width="14" height="14"></i> Train Model
+            <i data-lucide="cpu" width="14" height="14"></i> Обучить модель
           </button>
           <div id="train-status" style="margin-top:var(--space-3)"></div>
         </div>
@@ -214,10 +203,9 @@
     </div>
   </main>
 
-  <!-- PRODUCT MODAL -->
   <div class="modal-backdrop" id="modal-backdrop" style="display:none" onclick="closeModal()">
     <div class="modal" onclick="event.stopPropagation()">
-      <button class="icon-btn modal-close" onclick="closeModal()" aria-label="Close">
+      <button class="icon-btn modal-close" onclick="closeModal()" aria-label="Закрыть">
         <i data-lucide="x" width="16" height="16"></i>
       </button>
       <div id="modal-content"></div>
@@ -226,4 +214,5 @@
 
   <script src="app.js"></script>
 </body>
+
 </html>
